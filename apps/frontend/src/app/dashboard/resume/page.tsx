@@ -8,7 +8,23 @@ export default function ResumePage() {
   const queryClient = useQueryClient();
   const [latex, setLatex] = useState("");
 
-  const { data: master, isLoading } = useQuery({
+  const { data: master, isLoading } = useQuery<{
+    id: string;
+    latex: string;
+    parsed: {
+      sections: Record<string, string>;
+      technicalSkills: Array<{
+        name: string;
+        source: string;
+        locked: boolean;
+        score?: number;
+      }>;
+      relevantCoursework: Array<{
+        name: string;
+        score?: number;
+      }>;
+    };
+  }>({
     queryKey: ["resume-master"],
     queryFn: () => resumeApi.getMaster(),
   });

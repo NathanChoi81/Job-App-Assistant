@@ -47,7 +47,23 @@ export const resumeApi = {
       body: JSON.stringify({ latex }),
     }),
   
-  getMaster: () => apiRequest("/api/resume/master"),
+  getMaster: () => apiRequest<{
+    id: string;
+    latex: string;
+    parsed: {
+      sections: Record<string, string>;
+      technicalSkills: Array<{
+        name: string;
+        source: string;
+        locked: boolean;
+        score?: number;
+      }>;
+      relevantCoursework: Array<{
+        name: string;
+        score?: number;
+      }>;
+    };
+  }>("/api/resume/master"),
   
   updateVariant: (jobId: string, skills: any[], coursework: any[]) =>
     apiRequest("/api/resume/variant", {
@@ -68,7 +84,17 @@ export const jobsApi = {
     }),
   
   list: (status?: string) =>
-    apiRequest(`/api/jobs${status ? `?status=${status}` : ""}`),
+    apiRequest<Array<{
+      id: string;
+      title: string;
+      company: string;
+      location: string | null;
+      status: string;
+      application_status: string;
+      connection_status: string;
+      deadline_at: string | null;
+      created_at: string;
+    }>>(`/api/jobs${status ? `?status=${status}` : ""}`),
   
   get: (jobId: string) => apiRequest<{
     id: string;

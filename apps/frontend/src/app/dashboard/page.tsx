@@ -5,7 +5,17 @@ import { jobsApi } from "@/lib/api";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const { data: jobs, isLoading } = useQuery({
+  const { data: jobs, isLoading } = useQuery<Array<{
+    id: string;
+    title: string;
+    company: string;
+    location: string | null;
+    status: string;
+    application_status: string;
+    connection_status: string;
+    deadline_at: string | null;
+    created_at: string;
+  }>>({
     queryKey: ["jobs"],
     queryFn: () => jobsApi.list(),
   });
@@ -35,7 +45,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {jobs?.map((job: any) => (
+          {jobs?.map((job) => (
             <Link
               key={job.id}
               href={`/dashboard/jobs/${job.id}`}

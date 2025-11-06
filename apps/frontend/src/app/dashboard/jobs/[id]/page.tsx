@@ -59,7 +59,7 @@ export default function JobDetailPage() {
               placeholder="Paste job description here..."
             />
             <button
-              onClick={() => analyzeMutation.mutate(jdText || job?.jd_raw)}
+              onClick={() => analyzeMutation.mutate(jdText || job?.jd_raw || "")}
               className="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
               disabled={analyzeMutation.isPending}
             >
