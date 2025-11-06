@@ -70,7 +70,22 @@ export const jobsApi = {
   list: (status?: string) =>
     apiRequest(`/api/jobs${status ? `?status=${status}` : ""}`),
   
-  get: (jobId: string) => apiRequest(`/api/jobs/${jobId}`),
+  get: (jobId: string) => apiRequest<{
+    id: string;
+    title: string;
+    company: string;
+    location: string | null;
+    jd_raw: string;
+    jd_spans_json: any;
+    status: string;
+    application_status: string;
+    connection_status: string;
+    source_url: string | null;
+    deadline_at: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+  }>(`/api/jobs/${jobId}`),
   
   update: (jobId: string, updates: any) =>
     apiRequest(`/api/jobs/${jobId}`, {

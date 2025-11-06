@@ -12,7 +12,22 @@ export default function JobDetailPage() {
   const queryClient = useQueryClient();
   const [jdText, setJdText] = useState("");
 
-  const { data: job, isLoading } = useQuery({
+  const { data: job, isLoading } = useQuery<{
+    id: string;
+    title: string;
+    company: string;
+    location: string | null;
+    jd_raw: string;
+    jd_spans_json: any;
+    status: string;
+    application_status: string;
+    connection_status: string;
+    source_url: string | null;
+    deadline_at: string | null;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+  }>({
     queryKey: ["job", jobId],
     queryFn: () => jobsApi.get(jobId),
   });
