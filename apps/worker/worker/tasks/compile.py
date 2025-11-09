@@ -2,15 +2,14 @@
 
 import os
 import tempfile
+import subprocess
 import structlog
 from uuid import UUID
 from pathlib import Path
-import docker
 
 from worker.config import settings
 
 logger = structlog.get_logger()
-docker_client = docker.from_env()
 
 
 def compile_resume_task(variant_id: str):
@@ -55,30 +54,40 @@ def compile_resume_task(variant_id: str):
             output_dir = Path(tmpdir) / "output"
             output_dir.mkdir()
             
-            # Run Tectonic in Docker container (sandboxed, no network)
+            # Run Tectonic directly (installed in container)
             logger.info("Running Tectonic compilation", variant_id=variant_id)
             
-            container = docker_client.containers.run(
-                image="ghcr.io/tectonic-typesetting/tectonic:latest",
-                command=[
-                    "tectonic",
-                    "--outdir", "/output",
-                    "/input/resume.tex",
-                ],
-                volumes={
-                    str(latex_file.parent): {"bind": "/input", "mode": "ro"},
-                    str(output_dir): {"bind": "/output", "mode": "rw"},
-                },
-                network_disabled=True,  # Sandbox: no network access
-                remove=True,
-                detach=False,
-            )
+            try:
+                result = subprocess.run(
+                    [
+                        "tectonic",
+                        "--outdir", str(output_dir),
+                        str(latex_file),
+                    ],
+                    cwd=tmpdir,
+                    capture_output=True,
+                    text=True,
+                    timeout=60,  # 60 second timeout
+                )
+                
+                if result.returncode != 0:
+                    logger.error("Tectonic compilation failed", 
+                                variant_id=variant_id, 
+                                stderr=result.stderr,
+                                stdout=result.stdout)
+                    return {"status": "error", "message": f"Compilation failed: {result.stderr}"}
+            except subprocess.TimeoutExpired:
+                logger.error("Tectonic compilation timed out", variant_id=variant_id)
+                return {"status": "error", "message": "Compilation timed out"}
+            except Exception as e:
+                logger.error("Tectonic compilation error", variant_id=variant_id, exc_info=e)
+                return {"status": "error", "message": f"Compilation error: {str(e)}"}
             
             # Check for PDF output
             pdf_file = output_dir / "resume.pdf"
             if not pdf_file.exists():
-                logger.error("PDF compilation failed", variant_id=variant_id)
-                return {"status": "error", "message": "PDF compilation failed"}
+                logger.error("PDF file not found after compilation", variant_id=variant_id)
+                return {"status": "error", "message": "PDF file not generated"}
             
             # Upload PDF to Supabase Storage
             from supabase import create_client, Client

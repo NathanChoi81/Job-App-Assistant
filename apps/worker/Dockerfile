@@ -2,12 +2,20 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies including Docker client
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
     postgresql-client \
-    docker.io \
+    curl \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Tectonic (LaTeX compiler)
+RUN curl -L https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic@0.14.1/tectonic-0.14.1-x86_64-unknown-linux-musl.tar.gz -o /tmp/tectonic.tar.gz \
+    && tar -xzf /tmp/tectonic.tar.gz -C /tmp \
+    && mv /tmp/tectonic-0.14.1-x86_64-unknown-linux-musl/tectonic /usr/local/bin/ \
+    && chmod +x /usr/local/bin/tectonic \
+    && rm -rf /tmp/tectonic.tar.gz /tmp/tectonic-0.14.1-x86_64-unknown-linux-musl
 
 # Install Poetry
 RUN pip install poetry

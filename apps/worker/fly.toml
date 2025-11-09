@@ -1,4 +1,4 @@
-app = "get-a-job-worker"
+app = "job-app-assistant-worker"
 primary_region = "iad"
 
 [build]
