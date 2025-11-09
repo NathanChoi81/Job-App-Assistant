@@ -14,9 +14,6 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_KEY: str
 
-    # Docker
-    DOCKER_HOST: str = "unix:///var/run/docker.sock"
-
     # Sentry
     SENTRY_DSN: str | None = None
 

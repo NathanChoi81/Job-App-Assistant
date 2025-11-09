@@ -1,4 +1,4 @@
-"""PDF compilation task using Tectonic in Docker"""
+"""PDF compilation task using Tectonic"""
 
 import os
 import tempfile
@@ -14,7 +14,7 @@ logger = structlog.get_logger()
 
 def compile_resume_task(variant_id: str):
     """
-    Compile resume variant to PDF using Tectonic in Docker sandbox.
+    Compile resume variant to PDF using Tectonic.
     
     Args:
         variant_id: UUID of the resume variant to compile
