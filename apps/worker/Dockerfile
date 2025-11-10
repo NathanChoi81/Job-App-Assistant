@@ -31,6 +31,6 @@ RUN poetry config virtualenvs.create false \
 # Copy application code
 COPY . .
 
-# Run Celery worker
-CMD ["poetry", "run", "celery", "-A", "worker.main", "worker", "--loglevel=info"]
+# Run Celery worker (using Python directly since dependencies are installed globally)
+CMD ["celery", "-A", "worker.main", "worker", "--loglevel=info"]
 
