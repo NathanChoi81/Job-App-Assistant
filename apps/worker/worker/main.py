@@ -31,18 +31,35 @@ def fix_redis_url(url: str) -> str:
     """Add ssl_cert_reqs parameter to rediss:// URLs if missing"""
     if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
         separator = "&" if "?" in url else "?"
-        return f"{url}{separator}ssl_cert_reqs=none"
+        return f"{url}{separator}ssl_cert_reqs=CERT_NONE"
     return url
 
 broker_url = fix_redis_url(settings.CELERY_BROKER_URL)
 backend_url = fix_redis_url(settings.REDIS_URL)
 
 # Create Celery app
-celery_app = Celery(
-    "compile_worker",
-    broker=broker_url,
-    backend=backend_url,
-)
+celery_app = Celery("compile_worker")
+
+# Configure broker and backend with SSL settings
+celery_app.conf.broker_url = broker_url
+celery_app.conf.result_backend = backend_url
+
+# SSL configuration for Redis
+if broker_url.startswith("rediss://"):
+    celery_app.conf.broker_use_ssl = {
+        "ssl_cert_reqs": "CERT_NONE",
+        "ssl_ca_certs": None,
+        "ssl_certfile": None,
+        "ssl_keyfile": None,
+    }
+
+if backend_url.startswith("rediss://"):
+    celery_app.conf.redis_backend_use_ssl = {
+        "ssl_cert_reqs": "CERT_NONE",
+        "ssl_ca_certs": None,
+        "ssl_certfile": None,
+        "ssl_keyfile": None,
+    }
 
 celery_app.conf.task_serializer = "json"
 celery_app.conf.accept_content = ["json"]
