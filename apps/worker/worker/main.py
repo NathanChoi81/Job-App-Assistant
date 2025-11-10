@@ -26,11 +26,22 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
+# Fix Redis URLs for SSL (Upstash requires ssl_cert_reqs parameter)
+def fix_redis_url(url: str) -> str:
+    """Add ssl_cert_reqs parameter to rediss:// URLs if missing"""
+    if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
+        separator = "&" if "?" in url else "?"
+        return f"{url}{separator}ssl_cert_reqs=none"
+    return url
+
+broker_url = fix_redis_url(settings.CELERY_BROKER_URL)
+backend_url = fix_redis_url(settings.REDIS_URL)
+
 # Create Celery app
 celery_app = Celery(
     "compile_worker",
-    broker=settings.CELERY_BROKER_URL,
-    backend=settings.REDIS_URL,
+    broker=broker_url,
+    backend=backend_url,
 )
 
 celery_app.conf.task_serializer = "json"
