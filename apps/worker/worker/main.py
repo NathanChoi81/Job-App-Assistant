@@ -52,12 +52,12 @@ logger.info("Redis URLs configured",
            broker_has_ssl_cert=("ssl_cert_reqs" in broker_url.lower()),
            backend_has_ssl_cert=("ssl_cert_reqs" in backend_url.lower()))
 
-# Create Celery app
-celery_app = Celery("compile_worker")
-
-# Configure broker and backend with SSL settings
-celery_app.conf.broker_url = broker_url
-celery_app.conf.result_backend = backend_url
+# Create Celery app - pass URLs directly to constructor so they're used immediately
+celery_app = Celery(
+    "compile_worker",
+    broker=broker_url,  # Must have ?ssl_cert_reqs=CERT_NONE if rediss://
+    backend=backend_url,  # Must have ?ssl_cert_reqs=CERT_NONE if rediss://
+)
 
 # SSL configuration for Redis
 if broker_url.startswith("rediss://"):
