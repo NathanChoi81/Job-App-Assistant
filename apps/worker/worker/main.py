@@ -44,13 +44,27 @@ def fix_redis_url(url: str) -> str:
             return urlunparse(new_parsed)
     return url
 
-broker_url = fix_redis_url(settings.CELERY_BROKER_URL)
-backend_url = fix_redis_url(settings.REDIS_URL)
+# Fix URLs BEFORE creating Celery app
+original_broker = settings.CELERY_BROKER_URL
+original_backend = settings.REDIS_URL
+
+broker_url = fix_redis_url(original_broker)
+backend_url = fix_redis_url(original_backend)
+
+# Print to stdout (will show in logs) to verify URL modification
+print(f"[DEBUG] Original broker URL starts with: {original_broker[:20]}...")
+print(f"[DEBUG] Modified broker URL: {broker_url[:50]}..." if len(broker_url) > 50 else f"[DEBUG] Modified broker URL: {broker_url}")
+print(f"[DEBUG] Broker has ssl_cert_reqs: {'ssl_cert_reqs' in broker_url.lower()}")
+print(f"[DEBUG] Original backend URL starts with: {original_backend[:20]}...")
+print(f"[DEBUG] Modified backend URL: {backend_url[:50]}..." if len(backend_url) > 50 else f"[DEBUG] Modified backend URL: {backend_url}")
+print(f"[DEBUG] Backend has ssl_cert_reqs: {'ssl_cert_reqs' in backend_url.lower()}")
 
 # Log the URLs (without sensitive data) for debugging
 logger.info("Redis URLs configured", 
            broker_has_ssl_cert=("ssl_cert_reqs" in broker_url.lower()),
-           backend_has_ssl_cert=("ssl_cert_reqs" in backend_url.lower()))
+           backend_has_ssl_cert=("ssl_cert_reqs" in backend_url.lower()),
+           broker_scheme=broker_url.split("://")[0] if "://" in broker_url else "unknown",
+           backend_scheme=backend_url.split("://")[0] if "://" in backend_url else "unknown")
 
 # Create Celery app - pass URLs directly to constructor so they're used immediately
 celery_app = Celery(
