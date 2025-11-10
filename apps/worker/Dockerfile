@@ -21,8 +21,8 @@ RUN curl -L https://github.com/tectonic-typesetting/tectonic/releases/download/t
 # Install Poetry
 RUN pip install poetry
 
-# Copy dependency files
-COPY pyproject.toml poetry.lock* ./
+# Copy dependency files and README (needed for Poetry package installation)
+COPY pyproject.toml poetry.lock* README.md ./
 
 # Install dependencies
 RUN poetry config virtualenvs.create false \
