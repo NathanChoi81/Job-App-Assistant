@@ -29,14 +29,28 @@ logger = structlog.get_logger()
 # Fix Redis URLs for SSL (Upstash requires ssl_cert_reqs parameter)
 def fix_redis_url(url: str) -> str:
     """Add ssl_cert_reqs parameter to rediss:// URLs if missing"""
-    if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
-        separator = "&" if "?" in url else "?"
-        # Celery Redis backend expects uppercase CERT_NONE, CERT_OPTIONAL, or CERT_REQUIRED
-        return f"{url}{separator}ssl_cert_reqs=CERT_NONE"
+    if url.startswith("rediss://"):
+        # Check if parameter already exists (case-insensitive)
+        if "ssl_cert_reqs" not in url.lower():
+            separator = "&" if "?" in url else "?"
+            # Celery Redis backend expects uppercase CERT_NONE, CERT_OPTIONAL, or CERT_REQUIRED
+            # URL encode the parameter value
+            from urllib.parse import urlencode, urlparse, urlunparse, parse_qs
+            parsed = urlparse(url)
+            query_params = parse_qs(parsed.query)
+            query_params["ssl_cert_reqs"] = ["CERT_NONE"]
+            new_query = urlencode(query_params, doseq=True)
+            new_parsed = parsed._replace(query=new_query)
+            return urlunparse(new_parsed)
     return url
 
 broker_url = fix_redis_url(settings.CELERY_BROKER_URL)
 backend_url = fix_redis_url(settings.REDIS_URL)
+
+# Log the URLs (without sensitive data) for debugging
+logger.info("Redis URLs configured", 
+           broker_has_ssl_cert=("ssl_cert_reqs" in broker_url.lower()),
+           backend_has_ssl_cert=("ssl_cert_reqs" in backend_url.lower()))
 
 # Create Celery app
 celery_app = Celery("compile_worker")
