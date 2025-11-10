@@ -31,8 +31,8 @@ def fix_redis_url(url: str) -> str:
     """Add ssl_cert_reqs parameter to rediss:// URLs if missing"""
     if url.startswith("rediss://") and "ssl_cert_reqs" not in url:
         separator = "&" if "?" in url else "?"
-        # Use lowercase 'none' for URL parameter, but Celery expects CERT_NONE in config
-        return f"{url}{separator}ssl_cert_reqs=none"
+        # Celery Redis backend expects uppercase CERT_NONE, CERT_OPTIONAL, or CERT_REQUIRED
+        return f"{url}{separator}ssl_cert_reqs=CERT_NONE"
     return url
 
 broker_url = fix_redis_url(settings.CELERY_BROKER_URL)
