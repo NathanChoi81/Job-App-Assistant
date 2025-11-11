@@ -21,35 +21,52 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const headers = await getAuthHeaders();
-  
-  // Add timeout to prevent hanging
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+  console.log(`[API] Making request to: ${API_URL}${endpoint}`);
   
   try {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      ...options,
-      signal: controller.signal,
-      headers: {
-        ...headers,
-        ...options.headers,
-      },
-    });
+    const headers = await getAuthHeaders();
+    console.log(`[API] Headers obtained, making fetch request`);
     
-    clearTimeout(timeoutId);
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => {
+      console.error(`[API] Request timeout after 10s: ${endpoint}`);
+      controller.abort();
+    }, 10000); // 10 second timeout
     
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: "Unknown error" }));
-      throw new Error(error.detail || `HTTP ${response.status}`);
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          ...headers,
+          ...options.headers,
+        },
+      });
+      
+      clearTimeout(timeoutId);
+      console.log(`[API] Response received: ${response.status} ${response.statusText}`);
+      
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Unknown error" }));
+        console.error(`[API] Error response:`, error);
+        throw new Error(error.detail || `HTTP ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log(`[API] Success:`, data);
+      return data;
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        console.error(`[API] Request aborted (timeout): ${endpoint}`);
+        throw new Error('Request timed out. The API might be sleeping or unavailable.');
+      }
+      console.error(`[API] Fetch error:`, error);
+      throw error;
     }
-    
-    return response.json();
   } catch (error: any) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timed out. The API might be sleeping or unavailable.');
-    }
+    console.error(`[API] Error in apiRequest:`, error);
     throw error;
   }
 }

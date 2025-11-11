@@ -17,21 +17,35 @@ export default function DashboardPage() {
     created_at: string;
   }>>({
     queryKey: ["jobs"],
-    queryFn: () => jobsApi.list(),
+    queryFn: () => {
+      console.log("[Dashboard] Fetching jobs...");
+      return jobsApi.list();
+    },
     retry: false,
+    onError: (err) => {
+      console.error("[Dashboard] Error loading jobs:", err);
+    },
+    onSuccess: (data) => {
+      console.log("[Dashboard] Jobs loaded:", data);
+    },
   });
 
+  console.log("[Dashboard] State:", { isLoading, hasError: !!error, jobsCount: jobs?.length ?? 0 });
+
   if (isLoading) {
+    console.log("[Dashboard] Showing loading state");
     return <div className="p-8">Loading...</div>;
   }
 
   if (error) {
+    console.error("[Dashboard] Showing error state:", error);
     return (
       <div className="p-8">
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
           <p className="font-bold">Error loading jobs:</p>
           <p>{error instanceof Error ? error.message : "Unknown error"}</p>
           <p className="text-sm mt-2">Check if the API is running and NEXT_PUBLIC_API_URL is set correctly.</p>
+          <p className="text-xs mt-2">Check browser console (F12) for more details.</p>
         </div>
       </div>
     );
