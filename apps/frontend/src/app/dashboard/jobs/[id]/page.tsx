@@ -2,9 +2,28 @@
 
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { jobsApi, resumeApi, coverLetterApi } from "@/lib/api";
+import { jobsApi } from "@/lib/api";
 import { useState } from "react";
 import Link from "next/link";
+
+type JDSpans = Record<string, unknown>;
+
+type JobDetail = {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  jd_raw: string;
+  jd_spans_json: JDSpans;
+  status: string;
+  application_status: string;
+  connection_status: string;
+  source_url: string | null;
+  deadline_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
 
 export default function JobDetailPage() {
   const params = useParams();
@@ -12,22 +31,7 @@ export default function JobDetailPage() {
   const queryClient = useQueryClient();
   const [jdText, setJdText] = useState("");
 
-  const { data: job, isLoading } = useQuery<{
-    id: string;
-    title: string;
-    company: string;
-    location: string | null;
-    jd_raw: string;
-    jd_spans_json: any;
-    status: string;
-    application_status: string;
-    connection_status: string;
-    source_url: string | null;
-    deadline_at: string | null;
-    notes: string | null;
-    created_at: string;
-    updated_at: string;
-  }>({
+  const { data: job, isLoading } = useQuery<JobDetail>({
     queryKey: ["job", jobId],
     queryFn: () => jobsApi.get(jobId),
   });

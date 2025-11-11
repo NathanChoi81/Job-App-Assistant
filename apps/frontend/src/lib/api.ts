@@ -56,16 +56,16 @@ export async function apiRequest<T>(
       const data = await response.json();
       console.log(`[API] Success:`, data);
       return data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
+      if (error instanceof Error && error.name === 'AbortError') {
         console.error(`[API] Request aborted (timeout): ${endpoint}`);
         throw new Error('Request timed out. The API might be sleeping or unavailable.');
       }
       console.error(`[API] Fetch error:`, error);
       throw error;
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error(`[API] Error in apiRequest:`, error);
     throw error;
   }
@@ -97,7 +97,7 @@ export const resumeApi = {
     };
   }>("/api/resume/master"),
   
-  updateVariant: (jobId: string, skills: any[], coursework: any[]) =>
+  updateVariant: (jobId: string, skills: Array<{ name: string; source: string; locked: boolean; score?: number }>, coursework: Array<{ name: string; score?: number }>) =>
     apiRequest("/api/resume/variant", {
       method: "POST",
       body: JSON.stringify({ job_id: jobId, skills, coursework }),
@@ -107,45 +107,58 @@ export const resumeApi = {
     apiRequest(`/api/resume/variant/${jobId}`),
 };
 
+type JobCreate = {
+  title: string;
+  company: string;
+  location?: string | null;
+  jd_raw?: string;
+  source_url?: string | null;
+  deadline_at?: string | null;
+  notes?: string | null;
+};
+
+type JobUpdate = Partial<JobCreate & {
+  status?: string;
+  application_status?: string;
+  connection_status?: string;
+}>;
+
+type JDSpans = Record<string, unknown>;
+
+type Job = {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  status: string;
+  application_status: string;
+  connection_status: string;
+  deadline_at: string | null;
+  created_at: string;
+};
+
+type JobDetail = Job & {
+  jd_raw: string;
+  jd_spans_json: JDSpans;
+  source_url: string | null;
+  notes: string | null;
+  updated_at: string;
+};
+
 // Jobs API
 export const jobsApi = {
-  create: (job: any) =>
+  create: (job: JobCreate) =>
     apiRequest("/api/jobs", {
       method: "POST",
       body: JSON.stringify(job),
     }),
   
   list: (status?: string) =>
-    apiRequest<Array<{
-      id: string;
-      title: string;
-      company: string;
-      location: string | null;
-      status: string;
-      application_status: string;
-      connection_status: string;
-      deadline_at: string | null;
-      created_at: string;
-    }>>(`/api/jobs${status ? `?status=${status}` : ""}`),
+    apiRequest<Job[]>(`/api/jobs${status ? `?status=${status}` : ""}`),
   
-  get: (jobId: string) => apiRequest<{
-    id: string;
-    title: string;
-    company: string;
-    location: string | null;
-    jd_raw: string;
-    jd_spans_json: any;
-    status: string;
-    application_status: string;
-    connection_status: string;
-    source_url: string | null;
-    deadline_at: string | null;
-    notes: string | null;
-    created_at: string;
-    updated_at: string;
-  }>(`/api/jobs/${jobId}`),
+  get: (jobId: string) => apiRequest<JobDetail>(`/api/jobs/${jobId}`),
   
-  update: (jobId: string, updates: any) =>
+  update: (jobId: string, updates: JobUpdate) =>
     apiRequest(`/api/jobs/${jobId}`, {
       method: "PATCH",
       body: JSON.stringify(updates),
@@ -163,44 +176,84 @@ export const jobsApi = {
     }),
 };
 
+type CoverLetter = {
+  id: string;
+  job_id: string;
+  text: string;
+  pdf_path: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 // Cover Letter API
 export const coverLetterApi = {
   generate: (jobId: string) =>
-    apiRequest("/api/cover-letter/generate", {
+    apiRequest<CoverLetter>("/api/cover-letter/generate", {
       method: "POST",
       body: JSON.stringify({ job_id: jobId }),
     }),
   
-  get: (jobId: string) => apiRequest(`/api/cover-letter/${jobId}`),
+  get: (jobId: string) => apiRequest<CoverLetter>(`/api/cover-letter/${jobId}`),
   
   update: (jobId: string, text: string) =>
-    apiRequest(`/api/cover-letter/${jobId}`, {
+    apiRequest<CoverLetter>(`/api/cover-letter/${jobId}`, {
       method: "PATCH",
       body: JSON.stringify({ text }),
     }),
 };
 
+type ContactCreate = {
+  job_id?: string;
+  name: string;
+  email?: string | null;
+  linkedin_url?: string | null;
+  title?: string | null;
+  company?: string | null;
+  notes?: string | null;
+};
+
+type ContactUpdate = Partial<ContactCreate>;
+
+type Contact = {
+  id: string;
+  job_id: string | null;
+  name: string;
+  email: string | null;
+  linkedin_url: string | null;
+  title: string | null;
+  company: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+type DMGenerateParams = {
+  contact_id: string;
+  job_id?: string;
+  message_type?: string;
+};
+
 // Outreach API
 export const outreachApi = {
-  createContact: (contact: any) =>
-    apiRequest("/api/outreach/contacts", {
+  createContact: (contact: ContactCreate) =>
+    apiRequest<Contact>("/api/outreach/contacts", {
       method: "POST",
       body: JSON.stringify(contact),
     }),
   
   listContacts: (jobId?: string) =>
-    apiRequest(`/api/outreach/contacts${jobId ? `?job_id=${jobId}` : ""}`),
+    apiRequest<Contact[]>(`/api/outreach/contacts${jobId ? `?job_id=${jobId}` : ""}`),
   
   getContact: (contactId: string) =>
-    apiRequest(`/api/outreach/contacts/${contactId}`),
+    apiRequest<Contact>(`/api/outreach/contacts/${contactId}`),
   
-  updateContact: (contactId: string, updates: any) =>
-    apiRequest(`/api/outreach/contacts/${contactId}`, {
+  updateContact: (contactId: string, updates: ContactUpdate) =>
+    apiRequest<Contact>(`/api/outreach/contacts/${contactId}`, {
       method: "PATCH",
       body: JSON.stringify(updates),
     }),
   
-  generateDM: (params: any) =>
+  generateDM: (params: DMGenerateParams) =>
     apiRequest("/api/outreach/generate-dm", {
       method: "POST",
       body: JSON.stringify(params),

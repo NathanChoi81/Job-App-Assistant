@@ -29,8 +29,9 @@ export default function LoginPage() {
         if (error) throw error;
         router.push("/dashboard");
       }
-    } catch (error: any) {
-      alert(error.message);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "An error occurred";
+      alert(message);
     }
   };
 
