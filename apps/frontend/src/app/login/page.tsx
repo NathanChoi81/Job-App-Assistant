@@ -25,26 +25,48 @@ export default function LoginPage() {
         if (error) throw error;
         alert("Check your email for confirmation link");
       } else {
-        console.log("[Login] Attempting sign in...");
+        console.log("[Login] Attempting sign in with email:", email);
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         
+        console.log("[Login] Auth response received");
+        console.log("[Login] Error:", error);
+        console.log("[Login] Data:", data);
+        
         if (error) {
           console.error("[Login] Sign in error:", error);
-          throw error;
+          alert(`Login failed: ${error.message}`);
+          return;
         }
         
-        console.log("[Login] Sign in successful!", data);
-        console.log("[Login] Session:", data.session);
-        console.log("[Login] Redirecting to dashboard...");
+        if (!data.session) {
+          console.error("[Login] No session in response!");
+          alert("Login failed: No session received");
+          return;
+        }
         
-        // Wait a moment for session to be set, then redirect
+        console.log("[Login] Session received:", data.session.user?.email);
+        console.log("[Login] Access token exists:", !!data.session.access_token);
+        
+        // Verify session is actually set
+        const { data: { session: verifiedSession } } = await supabase.auth.getSession();
+        console.log("[Login] Verified session:", verifiedSession ? "YES" : "NO");
+        
+        if (!verifiedSession) {
+          console.error("[Login] Session not set in Supabase client!");
+          alert("Login failed: Session not set properly");
+          return;
+        }
+        
+        console.log("[Login] Redirecting to dashboard in 1 second...");
+        
+        // Give time for cookies to be set
         setTimeout(() => {
-          console.log("[Login] Executing redirect now");
+          console.log("[Login] Executing redirect NOW");
           window.location.href = "/dashboard";
-        }, 500);
+        }, 1000);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "An error occurred";
