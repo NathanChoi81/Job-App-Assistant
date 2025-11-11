@@ -20,6 +20,8 @@ type Job = {
 };
 
 export default function DashboardPage() {
+  console.log("[Dashboard] Dashboard component rendered");
+  
   const { data: jobs, isLoading, error } = useQuery<Job[]>({
     queryKey: ["jobs"],
     queryFn: () => {
@@ -27,6 +29,7 @@ export default function DashboardPage() {
       return jobsApi.list();
     },
     retry: false,
+    enabled: true, // Explicitly enable the query
   });
 
   // Log state changes

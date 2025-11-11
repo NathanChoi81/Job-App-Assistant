@@ -25,14 +25,26 @@ export default function LoginPage() {
         if (error) throw error;
         alert("Check your email for confirmation link");
       } else {
+        console.log("[Login] Attempting sign in...");
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
         });
-        if (error) throw error;
-        console.log("[Login] Sign in successful, redirecting to dashboard...");
-        // Use window.location for a full page reload to ensure session is set
-        window.location.href = "/dashboard";
+        
+        if (error) {
+          console.error("[Login] Sign in error:", error);
+          throw error;
+        }
+        
+        console.log("[Login] Sign in successful!", data);
+        console.log("[Login] Session:", data.session);
+        console.log("[Login] Redirecting to dashboard...");
+        
+        // Wait a moment for session to be set, then redirect
+        setTimeout(() => {
+          console.log("[Login] Executing redirect now");
+          window.location.href = "/dashboard";
+        }, 500);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "An error occurred";
