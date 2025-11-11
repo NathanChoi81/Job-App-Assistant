@@ -4,7 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import { jobsApi } from "@/lib/api";
 import Link from "next/link";
 
-// Trigger workflow
+// Force dynamic rendering (no static generation)
+export const dynamic = 'force-dynamic';
 
 type Job = {
   id: string;

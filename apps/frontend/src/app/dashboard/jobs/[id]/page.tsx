@@ -6,6 +6,9 @@ import { jobsApi } from "@/lib/api";
 import { useState } from "react";
 import Link from "next/link";
 
+// Force dynamic rendering (no static generation)
+export const dynamic = 'force-dynamic';
+
 type JDSpans = Record<string, unknown>;
 
 type JobDetail = {

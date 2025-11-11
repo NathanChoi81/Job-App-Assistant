@@ -4,6 +4,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { resumeApi } from "@/lib/api";
 import { useState } from "react";
 
+// Force dynamic rendering (no static generation)
+export const dynamic = 'force-dynamic';
+
 export default function ResumePage() {
   const queryClient = useQueryClient();
   const [latex, setLatex] = useState("");
