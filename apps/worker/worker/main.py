@@ -26,65 +26,54 @@ structlog.configure(
 
 logger = structlog.get_logger()
 
-# Fix Redis URLs for SSL (Upstash requires ssl_cert_reqs parameter)
-def fix_redis_url(url: str) -> str:
-    """Add ssl_cert_reqs parameter to rediss:// URLs if missing"""
-    if url.startswith("rediss://"):
-        # Check if parameter already exists (case-insensitive)
-        if "ssl_cert_reqs" not in url.lower():
-            separator = "&" if "?" in url else "?"
-            # Celery Redis backend expects uppercase CERT_NONE, CERT_OPTIONAL, or CERT_REQUIRED
-            # URL encode the parameter value
-            from urllib.parse import urlencode, urlparse, urlunparse, parse_qs
-            parsed = urlparse(url)
-            query_params = parse_qs(parsed.query)
-            query_params["ssl_cert_reqs"] = ["CERT_NONE"]
-            new_query = urlencode(query_params, doseq=True)
-            new_parsed = parsed._replace(query=new_query)
-            return urlunparse(new_parsed)
+# Remove ssl_cert_reqs from URLs if present (Redis client doesn't accept it in URL)
+# SSL will be configured through Celery's connection options instead
+def clean_redis_url(url: str) -> str:
+    """Remove ssl_cert_reqs parameter from URL if present"""
+    if "ssl_cert_reqs" in url.lower():
+        from urllib.parse import urlparse, urlunparse, parse_qs, urlencode
+        parsed = urlparse(url)
+        query_params = parse_qs(parsed.query)
+        # Remove ssl_cert_reqs from query params
+        query_params.pop("ssl_cert_reqs", None)
+        query_params.pop("SSL_CERT_REQS", None)
+        new_query = urlencode(query_params, doseq=True)
+        new_parsed = parsed._replace(query=new_query)
+        return urlunparse(new_parsed)
     return url
 
-# Fix URLs BEFORE creating Celery app
-original_broker = settings.CELERY_BROKER_URL
-original_backend = settings.REDIS_URL
+# Clean URLs (remove ssl_cert_reqs if present)
+broker_url = clean_redis_url(settings.CELERY_BROKER_URL)
+backend_url = clean_redis_url(settings.REDIS_URL)
 
-broker_url = fix_redis_url(original_broker)
-backend_url = fix_redis_url(original_backend)
-
-# Print to stdout (will show in logs) to verify URL modification
-print(f"[DEBUG] Original broker URL starts with: {original_broker[:20]}...")
-print(f"[DEBUG] Modified broker URL: {broker_url[:50]}..." if len(broker_url) > 50 else f"[DEBUG] Modified broker URL: {broker_url}")
-print(f"[DEBUG] Broker has ssl_cert_reqs: {'ssl_cert_reqs' in broker_url.lower()}")
-print(f"[DEBUG] Original backend URL starts with: {original_backend[:20]}...")
-print(f"[DEBUG] Modified backend URL: {backend_url[:50]}..." if len(backend_url) > 50 else f"[DEBUG] Modified backend URL: {backend_url}")
-print(f"[DEBUG] Backend has ssl_cert_reqs: {'ssl_cert_reqs' in backend_url.lower()}")
-
-# Log the URLs (without sensitive data) for debugging
-logger.info("Redis URLs configured", 
-           broker_has_ssl_cert=("ssl_cert_reqs" in broker_url.lower()),
-           backend_has_ssl_cert=("ssl_cert_reqs" in backend_url.lower()),
+logger.info("Redis URLs configured",
            broker_scheme=broker_url.split("://")[0] if "://" in broker_url else "unknown",
            backend_scheme=backend_url.split("://")[0] if "://" in backend_url else "unknown")
 
-# Create Celery app - pass URLs directly to constructor so they're used immediately
+# Create Celery app
 celery_app = Celery(
     "compile_worker",
-    broker=broker_url,  # Must have ?ssl_cert_reqs=CERT_NONE if rediss://
-    backend=backend_url,  # Must have ?ssl_cert_reqs=CERT_NONE if rediss://
+    broker=broker_url,
+    backend=backend_url,
 )
 
-# SSL configuration for Redis
+# SSL configuration for Redis (Upstash requires SSL but doesn't verify certificates)
+# Configure SSL through Celery settings, not URL parameters
 if broker_url.startswith("rediss://"):
+    # Use ssl_cert_reqs as integer constant (0 = CERT_NONE)
+    # redis-py expects ssl_cert_reqs as ssl.SSLContext.verify_mode value
+    import ssl
     celery_app.conf.broker_use_ssl = {
-        "ssl_cert_reqs": "CERT_NONE",
+        "ssl_cert_reqs": ssl.CERT_NONE,
         "ssl_ca_certs": None,
         "ssl_certfile": None,
         "ssl_keyfile": None,
     }
 
 if backend_url.startswith("rediss://"):
+    import ssl
     celery_app.conf.redis_backend_use_ssl = {
-        "ssl_cert_reqs": "CERT_NONE",
+        "ssl_cert_reqs": ssl.CERT_NONE,
         "ssl_ca_certs": None,
         "ssl_certfile": None,
         "ssl_keyfile": None,
