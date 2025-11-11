@@ -4,32 +4,35 @@ import { useQuery } from "@tanstack/react-query";
 import { jobsApi } from "@/lib/api";
 import Link from "next/link";
 
+type Job = {
+  id: string;
+  title: string;
+  company: string;
+  location: string | null;
+  status: string;
+  application_status: string;
+  connection_status: string;
+  deadline_at: string | null;
+  created_at: string;
+};
+
 export default function DashboardPage() {
-  const { data: jobs, isLoading, error } = useQuery<Array<{
-    id: string;
-    title: string;
-    company: string;
-    location: string | null;
-    status: string;
-    application_status: string;
-    connection_status: string;
-    deadline_at: string | null;
-    created_at: string;
-  }>>({
+  const { data: jobs, isLoading, error } = useQuery<Job[]>({
     queryKey: ["jobs"],
     queryFn: () => {
       console.log("[Dashboard] Fetching jobs...");
       return jobsApi.list();
     },
     retry: false,
-    onError: (err) => {
-      console.error("[Dashboard] Error loading jobs:", err);
-    },
-    onSuccess: (data) => {
-      console.log("[Dashboard] Jobs loaded:", data);
-    },
   });
 
+  // Log state changes
+  if (jobs) {
+    console.log("[Dashboard] Jobs loaded:", jobs);
+  }
+  if (error) {
+    console.error("[Dashboard] Error loading jobs:", error);
+  }
   console.log("[Dashboard] State:", { isLoading, hasError: !!error, jobsCount: jobs?.length ?? 0 });
 
   if (isLoading) {
@@ -72,7 +75,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {jobs?.map((job) => (
+          {jobs?.map((job: Job) => (
             <Link
               key={job.id}
               href={`/dashboard/jobs/${job.id}`}
