@@ -5,7 +5,7 @@ import { jobsApi } from "@/lib/api";
 import Link from "next/link";
 
 export default function DashboardPage() {
-  const { data: jobs, isLoading } = useQuery<Array<{
+  const { data: jobs, isLoading, error } = useQuery<Array<{
     id: string;
     title: string;
     company: string;
@@ -18,10 +18,23 @@ export default function DashboardPage() {
   }>>({
     queryKey: ["jobs"],
     queryFn: () => jobsApi.list(),
+    retry: false,
   });
 
   if (isLoading) {
     return <div className="p-8">Loading...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+          <p className="font-bold">Error loading jobs:</p>
+          <p>{error instanceof Error ? error.message : "Unknown error"}</p>
+          <p className="text-sm mt-2">Check if the API is running and NEXT_PUBLIC_API_URL is set correctly.</p>
+        </div>
+      </div>
+    );
   }
 
   return (
