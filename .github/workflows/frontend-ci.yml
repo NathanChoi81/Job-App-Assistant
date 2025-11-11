@@ -3,14 +3,9 @@ name: Frontend CI
 on:
   push:
     branches: [main, develop]
-    paths:
-      - "apps/frontend/**"
-      - "packages/shared-types/**"
   pull_request:
     branches: [main, develop]
-    paths:
-      - "apps/frontend/**"
-      - "packages/shared-types/**"
+  workflow_dispatch:
 
 jobs:
   lint-and-typecheck:
