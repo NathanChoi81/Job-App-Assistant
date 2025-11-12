@@ -15,9 +15,13 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("[Login] FORM SUBMITTED - Starting login process");
+    console.log("[Login] Email:", email);
+    console.log("[Login] Is sign up:", isSignUp);
     
     try {
       if (isSignUp) {
+        console.log("[Login] Sign up flow");
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -25,52 +29,66 @@ export default function LoginPage() {
         if (error) throw error;
         alert("Check your email for confirmation link");
       } else {
-        console.log("[Login] Attempting sign in with email:", email);
-        const { data, error } = await supabase.auth.signInWithPassword({
+        console.log("[Login] === SIGN IN FLOW START ===");
+        console.log("[Login] Calling signInWithPassword...");
+        
+        const result = await supabase.auth.signInWithPassword({
           email,
           password,
         });
         
-        console.log("[Login] Auth response received");
-        console.log("[Login] Error:", error);
-        console.log("[Login] Data:", data);
+        console.log("[Login] === SIGN IN RESPONSE RECEIVED ===");
+        console.log("[Login] Full result:", JSON.stringify(result, null, 2));
+        console.log("[Login] Error:", result.error);
+        console.log("[Login] Data:", result.data);
+        console.log("[Login] Session:", result.data?.session);
+        console.log("[Login] User:", result.data?.user);
         
-        if (error) {
-          console.error("[Login] Sign in error:", error);
-          alert(`Login failed: ${error.message}`);
+        if (result.error) {
+          console.error("[Login] ERROR:", result.error);
+          alert(`Login failed: ${result.error.message}`);
           return;
         }
         
-        if (!data.session) {
-          console.error("[Login] No session in response!");
+        if (!result.data?.session) {
+          console.error("[Login] NO SESSION IN RESPONSE!");
           alert("Login failed: No session received");
           return;
         }
         
-        console.log("[Login] Session received:", data.session.user?.email);
-        console.log("[Login] Access token exists:", !!data.session.access_token);
+        console.log("[Login] Session exists! User email:", result.data.session.user?.email);
+        console.log("[Login] Access token:", result.data.session.access_token?.substring(0, 20) + "...");
+        
+        // Wait a bit for session to be persisted
+        console.log("[Login] Waiting 500ms for session to be set...");
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         // Verify session is actually set
-        const { data: { session: verifiedSession } } = await supabase.auth.getSession();
-        console.log("[Login] Verified session:", verifiedSession ? "YES" : "NO");
+        console.log("[Login] Verifying session...");
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        console.log("[Login] Session verification result:", { sessionData, sessionError });
         
-        if (!verifiedSession) {
-          console.error("[Login] Session not set in Supabase client!");
-          alert("Login failed: Session not set properly");
+        if (!sessionData?.session) {
+          console.error("[Login] SESSION NOT SET IN CLIENT!");
+          alert("Login failed: Session not set properly. Check console.");
           return;
         }
         
-        console.log("[Login] Redirecting to dashboard in 1 second...");
+        console.log("[Login] Session verified! Redirecting to dashboard...");
         
-        // Give time for cookies to be set
-        setTimeout(() => {
-          console.log("[Login] Executing redirect NOW");
-          window.location.href = "/dashboard";
-        }, 1000);
+        // Redirect immediately
+        console.log("[Login] Setting window.location.href = /dashboard");
+        window.location.href = "/dashboard";
+        console.log("[Login] Redirect command executed (this might not log if redirect works)");
       }
     } catch (error) {
+      console.error("[Login] === CATCH BLOCK ===]);
+      console.error("[Login] Error type:", typeof error);
+      console.error("[Login] Error:", error);
+      console.error("[Login] Error message:", error instanceof Error ? error.message : String(error));
+      console.error("[Login] Error stack:", error instanceof Error ? error.stack : "No stack");
       const message = error instanceof Error ? error.message : "An error occurred";
-      alert(message);
+      alert(`Error: ${message}`);
     }
   };
 
