@@ -59,7 +59,7 @@ export default function JobDetailPage() {
           <h1 className="text-3xl font-bold mb-4">Job Not Found</h1>
           {isNotFound ? (
             <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-              <p>This job doesn't exist or you don't have access to it.</p>
+              <p>This job doesn&apos;t exist or you don&apos;t have access to it.</p>
               <Link href="/dashboard" className="text-blue-600 underline mt-2 inline-block">
                 Back to Dashboard
               </Link>
@@ -84,7 +84,7 @@ export default function JobDetailPage() {
         <div className="max-w-4xl mx-auto">
           <h1 className="text-3xl font-bold mb-4">Job Not Found</h1>
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
-            <p>This job doesn't exist.</p>
+            <p>This job doesn&apos;t exist.</p>
             <Link href="/dashboard" className="text-blue-600 underline mt-2 inline-block">
               Back to Dashboard
             </Link>
