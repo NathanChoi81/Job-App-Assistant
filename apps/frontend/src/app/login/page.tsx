@@ -75,11 +75,26 @@ export default function LoginPage() {
         }
         
         console.log("[Login] Session verified! Redirecting to dashboard...");
-        console.log("[Login] Session cookie should be set now");
         
-        // Force a full page reload to ensure cookies are sent to server
+        // CRITICAL: Wait for cookies to be set and verify
+        // Give the browser time to set cookies
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Check if cookies are actually set
+        const allCookies = document.cookie;
+        console.log("[Login] All cookies after login:", allCookies);
+        
+        // Verify Supabase session cookie exists
+        const hasSupabaseCookie = allCookies.includes('sb-') || allCookies.includes('supabase');
+        console.log("[Login] Has Supabase cookie:", hasSupabaseCookie);
+        
+        if (!hasSupabaseCookie) {
+          console.error("[Login] WARNING: No Supabase cookie found! Session might not be persisted.");
+          // Try to manually set the session
+          // This is a workaround if createBrowserClient isn't setting cookies
+        }
+        
         console.log("[Login] Reloading page to /dashboard");
-        // Use window.location.replace to avoid back button issues
         window.location.replace("/dashboard");
       }
     } catch (error) {
