@@ -93,28 +93,38 @@ async def list_jobs(
     db: AsyncSession = Depends(get_db),
 ):
     """List all jobs for the user"""
-    query = select(Job).where(Job.user_id == user_id)
+    import structlog
+    logger = structlog.get_logger()
     
-    if status_filter:
-        query = query.where(Job.status == status_filter)
-    
-    result = await db.execute(query)
-    jobs = result.scalars().all()
-    
-    return [
-        {
-            "id": str(job.id),
-            "title": job.title,
-            "company": job.company,
-            "location": job.location,
-            "status": job.status,
-            "application_status": job.application_status,
-            "connection_status": job.connection_status,
-            "deadline_at": job.deadline_at.isoformat() if job.deadline_at else None,
-            "created_at": job.created_at.isoformat(),
-        }
-        for job in jobs
-    ]
+    try:
+        logger.info("Listing jobs", user_id=str(user_id), status_filter=status_filter)
+        query = select(Job).where(Job.user_id == user_id)
+        
+        if status_filter:
+            query = query.where(Job.status == status_filter)
+        
+        result = await db.execute(query)
+        jobs = result.scalars().all()
+        
+        logger.info("Jobs retrieved", count=len(jobs))
+        
+        return [
+            {
+                "id": str(job.id),
+                "title": job.title,
+                "company": job.company,
+                "location": job.location,
+                "status": job.status,
+                "application_status": job.application_status,
+                "connection_status": job.connection_status,
+                "deadline_at": job.deadline_at.isoformat() if job.deadline_at else None,
+                "created_at": job.created_at.isoformat(),
+            }
+            for job in jobs
+        ]
+    except Exception as e:
+        logger.error("Error listing jobs", error=str(e), error_type=type(e).__name__)
+        raise
 
 
 @router.get("/{job_id}")

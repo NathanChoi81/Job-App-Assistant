@@ -1,4 +1,4 @@
-app = "get-a-job-api"
+app = "job-app-assistant-api"
 primary_region = "iad"
 
 [build]
