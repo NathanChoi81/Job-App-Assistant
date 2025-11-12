@@ -9,7 +9,8 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOi
 export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
 // Helper function to manually set session in cookies if needed
-export async function setSessionCookie(session: any) {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+export async function setSessionCookie(_session: unknown) {
   if (typeof document === 'undefined') return;
   
   // The session should already be in cookies if createBrowserClient is working
