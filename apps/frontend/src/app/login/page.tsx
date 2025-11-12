@@ -75,11 +75,12 @@ export default function LoginPage() {
         }
         
         console.log("[Login] Session verified! Redirecting to dashboard...");
+        console.log("[Login] Session cookie should be set now");
         
-        // Redirect immediately
-        console.log("[Login] Setting window.location.href = /dashboard");
-        window.location.href = "/dashboard";
-        console.log("[Login] Redirect command executed (this might not log if redirect works)");
+        // Force a full page reload to ensure cookies are sent to server
+        console.log("[Login] Reloading page to /dashboard");
+        // Use window.location.replace to avoid back button issues
+        window.location.replace("/dashboard");
       }
     } catch (error) {
       console.error("[Login] === CATCH BLOCK ===");

@@ -24,6 +24,7 @@ export async function middleware(req: NextRequest) {
           return req.cookies.get(name)?.value;
         },
         set(name: string, value: string, options?: { path?: string; domain?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' }) {
+          // Set cookies on both request and response
           req.cookies.set({
             name,
             value,
@@ -35,7 +36,7 @@ export async function middleware(req: NextRequest) {
             ...options,
           });
         },
-        remove(name: string, options?: { path?: string; domain?: string }) {
+        remove(name: string, options?: { path?: string; domain?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' }) {
           req.cookies.set({
             name,
             value: "",
@@ -44,6 +45,7 @@ export async function middleware(req: NextRequest) {
           res.cookies.set({
             name,
             value: "",
+            maxAge: 0,
             ...options,
           });
         },
@@ -51,17 +53,31 @@ export async function middleware(req: NextRequest) {
     }
   );
 
+  // Get session - this will read from cookies
   const {
     data: { session },
+    error: sessionError,
   } = await supabase.auth.getSession();
+
+  // Log for debugging (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log("[Middleware] Path:", req.nextUrl.pathname);
+    console.log("[Middleware] Has session:", !!session);
+    console.log("[Middleware] Session error:", sessionError);
+    if (session) {
+      console.log("[Middleware] User email:", session.user?.email);
+    }
+  }
 
   // Protect dashboard routes
   if (req.nextUrl.pathname.startsWith("/dashboard") && !session) {
+    console.log("[Middleware] No session, redirecting to login");
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
   // Redirect authenticated users away from login
   if (req.nextUrl.pathname === "/login" && session) {
+    console.log("[Middleware] Has session, redirecting to dashboard");
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
