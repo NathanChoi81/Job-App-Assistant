@@ -9,20 +9,23 @@ from app.config import settings
 
 logger = structlog.get_logger()
 
-# Get database URL - prefer DATABASE_URL, fallback to constructing from SUPABASE_URL
-if settings.DATABASE_URL:
-    database_url = settings.DATABASE_URL
-    # Convert to asyncpg format if needed
-    if database_url.startswith("postgresql://"):
-        database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
-    elif not database_url.startswith("postgresql+asyncpg://"):
-        database_url = f"postgresql+asyncpg://{database_url}"
-else:
-    # Fallback: try to construct from SUPABASE_URL (this is likely wrong, but better than crashing)
-    logger.warning("DATABASE_URL not set, attempting to construct from SUPABASE_URL (may not work)")
-    # Supabase database connection needs: postgresql+asyncpg://postgres:[PASSWORD]@[HOST]:5432/postgres
-    # We can't construct this without the password, so this will likely fail
-    database_url = settings.SUPABASE_URL.replace("https://", "postgresql+asyncpg://").replace(".supabase.co", ".supabase.co:5432") + "/postgres"
+# Get database URL - DATABASE_URL is required for proper database connection
+if not settings.DATABASE_URL:
+    error_msg = (
+        "DATABASE_URL environment variable is not set. "
+        "Please set it in Fly.io secrets with: "
+        "flyctl secrets set DATABASE_URL='postgresql://postgres:[PASSWORD]@[HOST]:5432/postgres' -a job-app-assistant-api"
+    )
+    logger.error(error_msg)
+    raise ValueError(error_msg)
+
+database_url = settings.DATABASE_URL
+# Convert to asyncpg format if needed
+if database_url.startswith("postgresql://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+elif not database_url.startswith("postgresql+asyncpg://"):
+    # If it doesn't start with postgresql://, assume it needs the prefix
+    database_url = f"postgresql+asyncpg://{database_url}"
 
 logger.info("Connecting to database", url=database_url[:50] + "..." if len(database_url) > 50 else database_url)
 
