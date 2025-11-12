@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_KEY: str
     SUPABASE_JWT_SECRET: str
+    # Database connection string (postgresql://user:password@host:port/dbname)
+    DATABASE_URL: str | None = None
 
     # OpenAI
     OPENAI_API_KEY: str
