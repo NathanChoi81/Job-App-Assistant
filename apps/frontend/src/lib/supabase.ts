@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 // Get environment variables with fallbacks for build-time
 // NEXT_PUBLIC_ vars are embedded at build time, so we need valid values
@@ -11,13 +11,7 @@ if (typeof window !== 'undefined') {
   console.log("[Supabase] Using real Supabase:", !supabaseUrl?.includes("placeholder"));
 }
 
-// Create client - will use real values if env vars are set in Vercel
-// Placeholder values allow build to complete without errors
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true,
-  },
-});
+// Create browser client using @supabase/ssr for cookie-based session management
+// This ensures sessions are stored in cookies and can be read by middleware
+export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
 
