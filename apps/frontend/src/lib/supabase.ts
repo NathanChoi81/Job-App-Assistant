@@ -7,11 +7,25 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "eyJhbGciOi
 
 // Log which URL we're using (only in browser, not during build)
 if (typeof window !== 'undefined') {
+  console.log("[Supabase] Initializing browser client...");
   console.log("[Supabase] Client URL:", supabaseUrl?.substring(0, 30) + "...");
   console.log("[Supabase] Using real Supabase:", !supabaseUrl?.includes("placeholder"));
+  console.log("[Supabase] Anon key exists:", !!supabaseAnonKey);
 }
 
 // Create browser client using @supabase/ssr for cookie-based session management
 // This ensures sessions are stored in cookies and can be read by middleware
-export const supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+let supabase: ReturnType<typeof createBrowserClient>;
+
+try {
+  supabase = createBrowserClient(supabaseUrl, supabaseAnonKey);
+  if (typeof window !== 'undefined') {
+    console.log("[Supabase] Client created successfully");
+  }
+} catch (error) {
+  console.error("[Supabase] Error creating client:", error);
+  throw error;
+}
+
+export { supabase };
 
