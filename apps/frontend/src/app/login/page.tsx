@@ -82,7 +82,7 @@ export default function LoginPage() {
         console.log("[Login] Redirect command executed (this might not log if redirect works)");
       }
     } catch (error) {
-      console.error("[Login] === CATCH BLOCK ===]);
+      console.error("[Login] === CATCH BLOCK ===");
       console.error("[Login] Error type:", typeof error);
       console.error("[Login] Error:", error);
       console.error("[Login] Error message:", error instanceof Error ? error.message : String(error));
