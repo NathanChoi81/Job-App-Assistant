@@ -123,6 +123,10 @@ export default function LoginPage() {
           <button
             type="submit"
             className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
+            onClick={(e) => {
+              console.log("[Login] BUTTON CLICKED");
+              // Don't prevent default - let form handle it
+            }}
           >
             {isSignUp ? "Sign Up" : "Sign In"}
           </button>
