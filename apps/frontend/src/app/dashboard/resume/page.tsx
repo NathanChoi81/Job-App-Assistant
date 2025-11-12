@@ -11,7 +11,7 @@ export default function ResumePage() {
   const queryClient = useQueryClient();
   const [latex, setLatex] = useState("");
 
-  const { data: master, isLoading } = useQuery<{
+  const { data: master, isLoading, error } = useQuery<{
     id: string;
     latex: string;
     parsed: {
@@ -30,6 +30,7 @@ export default function ResumePage() {
   }>({
     queryKey: ["resume-master"],
     queryFn: () => resumeApi.getMaster(),
+    retry: false,
   });
 
   const uploadMutation = useMutation({
@@ -41,6 +42,25 @@ export default function ResumePage() {
 
   if (isLoading) {
     return <div className="p-8">Loading...</div>;
+  }
+
+  // Handle error state (404 means no resume, other errors are real errors)
+  if (error) {
+    const isNotFound = error instanceof Error && error.message.includes("404");
+    if (!isNotFound) {
+      return (
+        <div className="min-h-screen p-8">
+          <div className="max-w-4xl mx-auto">
+            <h1 className="text-3xl font-bold mb-8">Master Resume</h1>
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              <p className="font-bold">Error loading resume:</p>
+              <p>{error instanceof Error ? error.message : "Unknown error"}</p>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    // 404 means no resume exists, which is fine - show upload form
   }
 
   return (

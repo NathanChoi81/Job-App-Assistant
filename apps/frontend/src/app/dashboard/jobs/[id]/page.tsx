@@ -34,9 +34,10 @@ export default function JobDetailPage() {
   const queryClient = useQueryClient();
   const [jdText, setJdText] = useState("");
 
-  const { data: job, isLoading } = useQuery<JobDetail>({
+  const { data: job, isLoading, error } = useQuery<JobDetail>({
     queryKey: ["job", jobId],
     queryFn: () => jobsApi.get(jobId),
+    retry: false,
   });
 
   const analyzeMutation = useMutation({
@@ -50,11 +51,54 @@ export default function JobDetailPage() {
     return <div className="p-8">Loading...</div>;
   }
 
+  if (error) {
+    const isNotFound = error instanceof Error && error.message.includes("404");
+    return (
+      <div className="min-h-screen p-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-4">Job Not Found</h1>
+          {isNotFound ? (
+            <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+              <p>This job doesn't exist or you don't have access to it.</p>
+              <Link href="/dashboard" className="text-blue-600 underline mt-2 inline-block">
+                Back to Dashboard
+              </Link>
+            </div>
+          ) : (
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+              <p className="font-bold">Error loading job:</p>
+              <p>{error instanceof Error ? error.message : "Unknown error"}</p>
+              <Link href="/dashboard" className="text-blue-600 underline mt-2 inline-block">
+                Back to Dashboard
+              </Link>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="min-h-screen p-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-3xl font-bold mb-4">Job Not Found</h1>
+          <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded">
+            <p>This job doesn't exist.</p>
+            <Link href="/dashboard" className="text-blue-600 underline mt-2 inline-block">
+              Back to Dashboard
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4">{job?.title}</h1>
-        <p className="text-xl text-gray-600 mb-8">{job?.company}</p>
+        <h1 className="text-3xl font-bold mb-4">{job.title}</h1>
+        <p className="text-xl text-gray-600 mb-8">{job.company}</p>
 
         <div className="space-y-6">
           <section>
