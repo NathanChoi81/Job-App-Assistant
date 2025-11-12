@@ -21,11 +21,14 @@ export async function apiRequest<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  console.log(`[API] Making request to: ${API_URL}${endpoint}`);
+  const fullUrl = `${API_URL}${endpoint}`;
+  console.log(`[API] Making request to: ${fullUrl}`);
+  console.log(`[API] API_URL from env: ${process.env.NEXT_PUBLIC_API_URL || 'NOT SET'}`);
   
   try {
     const headers = await getAuthHeaders();
     console.log(`[API] Headers obtained, making fetch request`);
+    console.log(`[API] Authorization header present: ${!!headers.Authorization}`);
     
     // Add timeout to prevent hanging
     const controller = new AbortController();
