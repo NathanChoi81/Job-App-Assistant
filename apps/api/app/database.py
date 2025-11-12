@@ -30,13 +30,13 @@ elif not database_url.startswith("postgresql+asyncpg://"):
 logger.info("Connecting to database", url=database_url[:50] + "..." if len(database_url) > 50 else database_url)
 
 # Create async engine with connection timeouts
+# Use connection pooling (not NullPool) for better performance
 engine = create_async_engine(
     database_url,
     echo=not settings.is_production,
     pool_pre_ping=True,
     pool_size=5,
     max_overflow=10,
-    poolclass=NullPool if settings.is_production else None,  # Use NullPool in production to avoid connection issues
     connect_args={
         "server_settings": {
             "application_name": "job-app-assistant-api",
