@@ -59,14 +59,16 @@ export async function middleware(req: NextRequest) {
     error: sessionError,
   } = await supabase.auth.getSession();
 
-  // Log for debugging (only in development)
-  if (process.env.NODE_ENV === 'development') {
-    console.log("[Middleware] Path:", req.nextUrl.pathname);
-    console.log("[Middleware] Has session:", !!session);
-    console.log("[Middleware] Session error:", sessionError);
-    if (session) {
-      console.log("[Middleware] User email:", session.user?.email);
-    }
+  // Log for debugging (always log, check Vercel logs)
+  console.log("[Middleware] Path:", req.nextUrl.pathname);
+  console.log("[Middleware] Has session:", !!session);
+  if (sessionError) {
+    console.error("[Middleware] Session error:", sessionError);
+  }
+  if (session) {
+    console.log("[Middleware] User email:", session.user?.email);
+  } else {
+    console.log("[Middleware] All cookies:", Object.keys(req.cookies.getAll()));
   }
 
   // Protect dashboard routes
