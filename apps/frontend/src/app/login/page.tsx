@@ -70,6 +70,9 @@ function LoginForm() {
         const signupPromise = supabase.auth.signUp({
           email,
           password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
         });
         
         const timeoutPromise = new Promise((_, reject) => {
