@@ -19,6 +19,25 @@ export async function GET(request: NextRequest) {
   console.log("[Auth Callback] Next:", next);
   console.log("[Auth Callback] All query params:", Object.fromEntries(requestUrl.searchParams.entries()));
 
+  // Check for Supabase error parameters first
+  const error = requestUrl.searchParams.get("error");
+  const errorCode = requestUrl.searchParams.get("error_code");
+  const errorDescription = requestUrl.searchParams.get("error_description");
+  
+  if (error || errorCode) {
+    console.error("[Auth Callback] Supabase error in URL:", { error, errorCode, errorDescription });
+    const errorMsg = errorDescription || error || "Authentication error";
+    
+    if (debug) {
+      return new NextResponse(
+        `Debug: Supabase error - ${errorCode}: ${errorMsg}`,
+        { status: 400 }
+      );
+    }
+    
+    return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(errorMsg)}`, requestUrl.origin));
+  }
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
