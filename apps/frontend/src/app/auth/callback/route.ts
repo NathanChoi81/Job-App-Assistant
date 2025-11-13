@@ -43,7 +43,10 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("[Auth Callback] Error exchanging code:", error);
-      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
+      const errorMsg = error.message.includes("expired") || error.message.includes("invalid")
+        ? "Your confirmation link has expired. Please request a new confirmation email."
+        : error.message;
+      return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(errorMsg)}`, requestUrl.origin));
     }
 
     // Success - redirect to dashboard

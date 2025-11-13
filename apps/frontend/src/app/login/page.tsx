@@ -11,15 +11,50 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [resendingEmail, setResendingEmail] = useState(false);
   const searchParams = useSearchParams();
   
   // Check for error from auth callback
   useEffect(() => {
     const error = searchParams.get("error");
     if (error) {
-      alert(`Authentication error: ${decodeURIComponent(error)}`);
+      const decodedError = decodeURIComponent(error);
+      if (decodedError.includes("expired") || decodedError.includes("invalid")) {
+        alert("Your confirmation link has expired. Please request a new confirmation email.");
+      } else {
+        alert(`Authentication error: ${decodedError}`);
+      }
     }
   }, [searchParams]);
+
+  const handleResendConfirmation = async () => {
+    if (!email) {
+      alert("Please enter your email address first.");
+      return;
+    }
+
+    setResendingEmail(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        alert(`Failed to resend email: ${error.message}`);
+      } else {
+        alert("Confirmation email sent! Please check your inbox.");
+      }
+    } catch (error) {
+      console.error("Resend error:", error);
+      alert("Failed to resend confirmation email. Please try again.");
+    } finally {
+      setResendingEmail(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +117,8 @@ function LoginForm() {
         
         // Check if email confirmation is required
         if (result.data?.user && !result.data?.session) {
-          alert("Sign up successful! Please check your email to confirm your account.");
-          // Reset form
-          setEmail("");
+          alert("Sign up successful! Please check your email to confirm your account.\n\nIf you don't receive the email, you can request a new one below.");
+          // Don't reset form - keep email so they can resend if needed
           setPassword("");
           setIsSignUp(false);
           return;
