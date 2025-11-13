@@ -263,6 +263,14 @@ function LoginForm() {
             ? "Already have an account? Sign in"
             : "Don't have an account? Sign up"}
         </button>
+        
+        <button
+          onClick={handleResendConfirmation}
+          disabled={resendingEmail || !email}
+          className="mt-2 w-full text-blue-400 text-sm hover:text-blue-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-blue-400/30 rounded px-3 py-2"
+        >
+          {resendingEmail ? "Sending..." : "Resend confirmation email"}
+        </button>
       </div>
     </div>
   );
