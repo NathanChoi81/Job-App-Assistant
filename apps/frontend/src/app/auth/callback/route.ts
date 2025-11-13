@@ -63,10 +63,12 @@ export async function GET(request: NextRequest) {
     });
 
     console.log("[Auth Callback] Exchanging code for session...");
-    let data, error;
+    let data: { session: { user: { id?: string; email?: string } } | null } | null = null;
+    let error: { message: string } | null = null;
+    
     try {
       const result = await supabase.auth.exchangeCodeForSession(code);
-      data = result.data;
+      data = result.data as { session: { user: { id?: string; email?: string } } | null } | null;
       error = result.error;
       console.log("[Auth Callback] Exchange result:", { 
         hasData: !!data, 
@@ -76,7 +78,7 @@ export async function GET(request: NextRequest) {
       });
     } catch (err) {
       console.error("[Auth Callback] Exception during exchange:", err);
-      error = err as { message: string };
+      error = { message: err instanceof Error ? err.message : String(err) };
       if (debug) {
         return new NextResponse(
           `Debug: Exception during exchange: ${err instanceof Error ? err.message : String(err)}`,
@@ -102,7 +104,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Success - verify session was created
-    if (!data.session) {
+    if (!data || !data.session) {
       console.error("[Auth Callback] No session after code exchange");
       console.error("[Auth Callback] Data received:", JSON.stringify(data, null, 2));
       
