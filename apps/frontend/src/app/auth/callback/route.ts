@@ -5,63 +5,125 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
+  const access_token = requestUrl.searchParams.get("access_token");
+  const refresh_token = requestUrl.searchParams.get("refresh_token");
   const next = requestUrl.searchParams.get("next") || "/dashboard";
   const debug = requestUrl.searchParams.get("debug") === "true";
 
   console.log("[Auth Callback] === START ===");
   console.log("[Auth Callback] URL:", requestUrl.toString());
   console.log("[Auth Callback] Has code:", !!code);
+  console.log("[Auth Callback] Has access_token:", !!access_token);
+  console.log("[Auth Callback] Has refresh_token:", !!refresh_token);
   console.log("[Auth Callback] Code length:", code?.length || 0);
   console.log("[Auth Callback] Next:", next);
   console.log("[Auth Callback] All query params:", Object.fromEntries(requestUrl.searchParams.entries()));
 
-  if (code) {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error("[Auth Callback] Missing Supabase env vars");
-      console.error("[Auth Callback] supabaseUrl:", !!supabaseUrl);
-      console.error("[Auth Callback] supabaseAnonKey:", !!supabaseAnonKey);
-      
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error("[Auth Callback] Missing Supabase env vars");
+    console.error("[Auth Callback] supabaseUrl:", !!supabaseUrl);
+    console.error("[Auth Callback] supabaseAnonKey:", !!supabaseAnonKey);
+    
+    if (debug) {
+      return new NextResponse(
+        `Debug: Missing env vars. URL: ${!!supabaseUrl}, Key: ${!!supabaseAnonKey}`,
+        { status: 500 }
+      );
+    }
+    return NextResponse.redirect(new URL("/login?error=config", requestUrl.origin));
+  }
+
+  // Create response object first so we can set cookies on it
+  const response = NextResponse.next();
+  
+  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
+    cookies: {
+      get(name: string) {
+        return request.cookies.get(name)?.value;
+      },
+      set(name: string, value: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' }) {
+        // Set cookies on the response object
+        response.cookies.set({
+          name,
+          value,
+          ...options,
+        });
+      },
+      remove(name: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' }) {
+        response.cookies.set({
+          name,
+          value: "",
+          maxAge: 0,
+          ...options,
+        });
+      },
+    },
+  });
+
+  // Check if we have access_token and refresh_token (from Supabase verify redirect)
+  if (access_token && refresh_token) {
+    console.log("[Auth Callback] Found access_token and refresh_token, setting session...");
+    try {
+      const { data, error } = await supabase.auth.setSession({
+        access_token,
+        refresh_token,
+      });
+
+      if (error) {
+        console.error("[Auth Callback] Error setting session:", error);
+        if (debug) {
+          return new NextResponse(
+            `Debug: Error setting session: ${error.message}`,
+            { status: 400 }
+          );
+        }
+        return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, requestUrl.origin));
+      }
+
+      if (!data.session) {
+        console.error("[Auth Callback] No session after setSession");
+        if (debug) {
+          return new NextResponse("Debug: No session created after setSession", { status: 400 });
+        }
+        return NextResponse.redirect(new URL("/login?error=No session created", requestUrl.origin));
+      }
+
+      console.log("[Auth Callback] Session set successfully", { 
+        userId: data.session.user?.id,
+        email: data.session.user?.email 
+      });
+
+      // Create redirect response and copy all cookies
+      const redirectResponse = NextResponse.redirect(new URL(next, requestUrl.origin));
+      response.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, {
+          path: cookie.path || '/',
+          maxAge: cookie.maxAge,
+          httpOnly: cookie.httpOnly,
+          secure: cookie.secure ?? true,
+          sameSite: cookie.sameSite as 'strict' | 'lax' | 'none' | undefined,
+        });
+      });
+
+      console.log("[Auth Callback] Redirecting to:", next);
+      return redirectResponse;
+    } catch (err) {
+      console.error("[Auth Callback] Exception setting session:", err);
       if (debug) {
         return new NextResponse(
-          `Debug: Missing env vars. URL: ${!!supabaseUrl}, Key: ${!!supabaseAnonKey}`,
+          `Debug: Exception: ${err instanceof Error ? err.message : String(err)}`,
           { status: 500 }
         );
       }
-      return NextResponse.redirect(new URL("/login?error=config", requestUrl.origin));
+      return NextResponse.redirect(new URL("/login?error=Session error", requestUrl.origin));
     }
+  }
 
-    console.log("[Auth Callback] Env vars present, creating Supabase client...");
-
-    // Create response object first so we can set cookies on it
-    const response = NextResponse.next();
-    
-    const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-      cookies: {
-        get(name: string) {
-          return request.cookies.get(name)?.value;
-        },
-        set(name: string, value: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' }) {
-          // Set cookies on the response object
-          response.cookies.set({
-            name,
-            value,
-            ...options,
-          });
-        },
-        remove(name: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' }) {
-          response.cookies.set({
-            name,
-            value: "",
-            maxAge: 0,
-            ...options,
-          });
-        },
-      },
-    });
-
+  // Handle code exchange (PKCE flow)
+  if (code) {
     console.log("[Auth Callback] Exchanging code for session...");
     let data: { session: { user: { id?: string; email?: string } } | null } | null = null;
     let error: { message: string } | null = null;
