@@ -51,13 +51,21 @@ export default function LoginPage() {
           console.error("[Login] SIGN UP ERROR:", result.error);
           
           // Handle specific error types
-          if (result.error.message.includes("timeout") || result.error.message.includes("504")) {
+          const errorMsg = result.error.message.toLowerCase();
+          
+          if (errorMsg.includes("timeout") || errorMsg.includes("504")) {
             alert("Sign up timed out. Your Supabase project may be paused or the email service may be misconfigured.\n\nCheck:\n1. Supabase Dashboard → Is your project running?\n2. Settings → Email Auth → Is SMTP configured?\n3. Try again in a few moments.");
-          } else if (result.error.message.includes("already registered")) {
+          } else if (errorMsg.includes("503") || errorMsg.includes("service unavailable")) {
+            alert("Service unavailable (503). This usually means:\n\n1. Your Supabase project is PAUSED → Go to dashboard and resume it\n2. SMTP settings are incorrect → Check Settings → Auth → SMTP\n3. SMTP password/credentials are wrong → Verify all SMTP fields\n\nAfter fixing, wait 30 seconds and try again.");
+          } else if (errorMsg.includes("already registered") || errorMsg.includes("user already")) {
             alert("This email is already registered. Try signing in instead.");
             setIsSignUp(false);
+          } else if (errorMsg.includes("email") && errorMsg.includes("invalid")) {
+            alert("Invalid email address. Please check your email format.");
+          } else if (errorMsg.includes("password")) {
+            alert("Password issue. Make sure your password is at least 6 characters.");
           } else {
-            alert(`Sign up failed: ${result.error.message}`);
+            alert(`Sign up failed: ${result.error.message}\n\nIf this persists, check:\n1. Supabase project status\n2. SMTP configuration\n3. Network connectivity`);
           }
           return;
         }
