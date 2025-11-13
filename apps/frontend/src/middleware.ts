@@ -71,6 +71,12 @@ export async function middleware(req: NextRequest) {
     console.log("[Middleware] All cookies:", Object.keys(req.cookies.getAll()));
   }
 
+      // Allow auth callback to pass through (it handles its own redirect)
+      if (req.nextUrl.pathname.startsWith("/auth/callback")) {
+        console.log("[Middleware] Auth callback route, allowing through");
+        return res;
+      }
+
       // Protect dashboard routes
       if (req.nextUrl.pathname.startsWith("/dashboard") && !session) {
         console.log("[Middleware] No session, redirecting to login");
@@ -93,6 +99,6 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login", "/"],
+  matcher: ["/dashboard/:path*", "/login", "/", "/auth/callback"],
 };
 
