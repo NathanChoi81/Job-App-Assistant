@@ -215,12 +215,49 @@ export async function GET(request: NextRequest) {
     return redirectResponse;
   }
 
-  // No code provided, redirect to login
-  console.log("[Auth Callback] No code provided");
-  console.log("[Auth Callback] === END (NO CODE) ===");
+  // No code or tokens provided - check if session already exists (Supabase might have set cookies)
+  console.log("[Auth Callback] No code or tokens, checking for existing session...");
+  
+  try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error("[Auth Callback] Error getting session:", sessionError);
+    }
+    
+    if (session) {
+      console.log("[Auth Callback] Found existing session", { 
+        userId: session.user?.id,
+        email: session.user?.email 
+      });
+      
+      // Session exists, redirect to dashboard
+      const redirectResponse = NextResponse.redirect(new URL(next, requestUrl.origin));
+      
+      // Copy any cookies that were set
+      response.cookies.getAll().forEach((cookie) => {
+        redirectResponse.cookies.set(cookie.name, cookie.value, {
+          path: cookie.path || '/',
+          maxAge: cookie.maxAge,
+          httpOnly: cookie.httpOnly,
+          secure: cookie.secure ?? true,
+          sameSite: cookie.sameSite as 'strict' | 'lax' | 'none' | undefined,
+        });
+      });
+      
+      console.log("[Auth Callback] Redirecting to:", next);
+      return redirectResponse;
+    }
+  } catch (err) {
+    console.error("[Auth Callback] Exception checking session:", err);
+  }
+  
+  // No session found, redirect to login
+  console.log("[Auth Callback] No session found");
+  console.log("[Auth Callback] === END (NO CODE/TOKENS/SESSION) ===");
   
   if (debug) {
-    return new NextResponse("Debug: No code parameter in URL", { status: 400 });
+    return new NextResponse("Debug: No code, tokens, or session found", { status: 400 });
   }
   
   return NextResponse.redirect(new URL("/login", requestUrl.origin));
