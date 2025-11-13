@@ -20,10 +20,25 @@ export default function LoginPage() {
     try {
       if (isSignUp) {
         console.log("[Login] === SIGN UP FLOW START ===");
-        const result = await supabase.auth.signUp({
+        
+        // Add timeout handling for signup
+        const signupPromise = supabase.auth.signUp({
           email,
           password,
         });
+        
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error("Request timed out. Supabase may be paused or experiencing issues.")), 30000);
+        });
+        
+        let result;
+        try {
+          result = await Promise.race([signupPromise, timeoutPromise]) as typeof signupPromise extends Promise<infer T> ? T : never;
+        } catch (timeoutError) {
+          console.error("[Login] SIGN UP TIMEOUT:", timeoutError);
+          alert("Sign up request timed out. This usually means:\n\n1. Your Supabase project may be paused (check dashboard)\n2. Email service may be misconfigured\n3. Network connectivity issues\n\nTry again in a moment, or check your Supabase project status.");
+          return;
+        }
         
         console.log("[Login] === SIGN UP RESPONSE RECEIVED ===");
         console.log("[Login] Full result:", JSON.stringify(result, null, 2));
@@ -34,7 +49,16 @@ export default function LoginPage() {
         
         if (result.error) {
           console.error("[Login] SIGN UP ERROR:", result.error);
-          alert(`Sign up failed: ${result.error.message}`);
+          
+          // Handle specific error types
+          if (result.error.message.includes("timeout") || result.error.message.includes("504")) {
+            alert("Sign up timed out. Your Supabase project may be paused or the email service may be misconfigured.\n\nCheck:\n1. Supabase Dashboard → Is your project running?\n2. Settings → Email Auth → Is SMTP configured?\n3. Try again in a few moments.");
+          } else if (result.error.message.includes("already registered")) {
+            alert("This email is already registered. Try signing in instead.");
+            setIsSignUp(false);
+          } else {
+            alert(`Sign up failed: ${result.error.message}`);
+          }
           return;
         }
         
