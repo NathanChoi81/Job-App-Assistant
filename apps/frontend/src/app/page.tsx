@@ -1,11 +1,28 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
+import { supabase } from "@/lib/supabase";
+import { useRouter } from "next/navigation";
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
 export default function LandingPage() {
+  const router = useRouter();
+
+  // Check for session on mount (in case user was redirected here after email verification)
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        console.log("[Landing] Session found, redirecting to dashboard");
+        router.push("/dashboard");
+      }
+    };
+    
+    checkSession();
+  }, [router]);
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900">
       {/* Header */}
