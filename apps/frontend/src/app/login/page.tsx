@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { useSearchParams } from "next/navigation";
 
 // Force dynamic rendering (no static generation)
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,15 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const searchParams = useSearchParams();
+  
+  // Check for error from auth callback
+  useEffect(() => {
+    const error = searchParams.get("error");
+    if (error) {
+      alert(`Authentication error: ${decodeURIComponent(error)}`);
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
