@@ -16,20 +16,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=config", requestUrl.origin));
     }
 
+    // Create response object first so we can set cookies on it
+    const response = NextResponse.next();
+    
     const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
       cookies: {
         get(name: string) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' }) {
-          request.cookies.set({
+          // Set cookies on the response object
+          response.cookies.set({
             name,
             value,
             ...options,
           });
         },
         remove(name: string, options: { path?: string; maxAge?: number; httpOnly?: boolean; secure?: boolean; sameSite?: 'strict' | 'lax' | 'none' }) {
-          request.cookies.set({
+          response.cookies.set({
             name,
             value: "",
             maxAge: 0,
@@ -55,14 +59,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL("/login?error=No session created", requestUrl.origin));
     }
 
-    console.log("[Auth Callback] Session created successfully, redirecting to dashboard");
+    console.log("[Auth Callback] Session created successfully", { 
+      userId: data.session.user?.id,
+      email: data.session.user?.email 
+    });
     
     // Success - redirect to dashboard
-    // Use a full page redirect to ensure cookies are set
-    const response = NextResponse.redirect(new URL(next, requestUrl.origin));
+    // Create redirect response and copy all cookies from the session exchange
+    const redirectResponse = NextResponse.redirect(new URL(next, requestUrl.origin));
     
-    // Ensure cookies are properly set
-    return response;
+    // Copy all cookies from the session exchange to the redirect response
+    response.cookies.getAll().forEach((cookie) => {
+      redirectResponse.cookies.set(cookie.name, cookie.value, {
+        path: cookie.path || '/',
+        maxAge: cookie.maxAge,
+        httpOnly: cookie.httpOnly,
+        secure: cookie.secure ?? true,
+        sameSite: cookie.sameSite as 'strict' | 'lax' | 'none' | undefined,
+      });
+    });
+    
+    console.log("[Auth Callback] Redirecting to:", next);
+    return redirectResponse;
   }
 
   // No code provided, redirect to login
