@@ -19,13 +19,46 @@ export default function LoginPage() {
     
     try {
       if (isSignUp) {
-        console.log("[Login] Sign up flow");
-        const { error } = await supabase.auth.signUp({
+        console.log("[Login] === SIGN UP FLOW START ===");
+        const result = await supabase.auth.signUp({
           email,
           password,
         });
-        if (error) throw error;
-        alert("Check your email for confirmation link");
+        
+        console.log("[Login] === SIGN UP RESPONSE RECEIVED ===");
+        console.log("[Login] Full result:", JSON.stringify(result, null, 2));
+        console.log("[Login] Error:", result.error);
+        console.log("[Login] Data:", result.data);
+        console.log("[Login] User:", result.data?.user);
+        console.log("[Login] Session:", result.data?.session);
+        
+        if (result.error) {
+          console.error("[Login] SIGN UP ERROR:", result.error);
+          alert(`Sign up failed: ${result.error.message}`);
+          return;
+        }
+        
+        // Check if email confirmation is required
+        if (result.data?.user && !result.data?.session) {
+          alert("Sign up successful! Please check your email to confirm your account.");
+          // Reset form
+          setEmail("");
+          setPassword("");
+          setIsSignUp(false);
+          return;
+        }
+        
+        // If session exists (email confirmation disabled), log them in
+        if (result.data?.session) {
+          console.log("[Login] Session created during signup, redirecting to dashboard");
+          window.location.replace("/dashboard");
+          return;
+        }
+        
+        alert("Sign up successful! Please check your email to confirm your account.");
+        setEmail("");
+        setPassword("");
+        setIsSignUp(false);
       } else {
         console.log("[Login] === SIGN IN FLOW START ===");
         console.log("[Login] Calling signInWithPassword...");
@@ -107,35 +140,37 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-md p-8">
-        <h1 className="text-2xl font-bold mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-900">
+      <div className="max-w-md w-full bg-gray-800 rounded-lg shadow-xl p-8 border border-gray-700">
+        <h1 className="text-3xl font-bold mb-6 text-white">
           {isSignUp ? "Sign Up" : "Sign In"}
         </h1>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium mb-1">Email</label>
+            <label className="block text-sm font-medium mb-2 text-gray-300">Email</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="you@example.com"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
+            <label className="block text-sm font-medium mb-2 text-gray-300">Password</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
+              className="w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="••••••••"
               required
             />
           </div>
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700"
+            className="w-full bg-blue-600 text-white py-3 rounded-md hover:bg-blue-700 font-semibold transition-colors"
             onClick={() => {
               console.log("[Login] BUTTON CLICKED");
               // Don't prevent default - let form handle it
@@ -146,7 +181,7 @@ export default function LoginPage() {
         </form>
         <button
           onClick={() => setIsSignUp(!isSignUp)}
-          className="mt-4 text-blue-600 text-sm"
+          className="mt-4 text-blue-400 text-sm hover:text-blue-300 transition-colors"
         >
           {isSignUp
             ? "Already have an account? Sign in"
