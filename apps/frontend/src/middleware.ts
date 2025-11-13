@@ -71,17 +71,22 @@ export async function middleware(req: NextRequest) {
     console.log("[Middleware] All cookies:", Object.keys(req.cookies.getAll()));
   }
 
-      // Check if root path has Supabase auth parameters (redirects that land on root instead of /auth/callback)
+      // Check if root path has Supabase auth parameters or errors (redirects that land on root instead of /auth/callback)
       if (req.nextUrl.pathname === "/") {
         const code = req.nextUrl.searchParams.get("code");
         const token = req.nextUrl.searchParams.get("token");
         const access_token = req.nextUrl.searchParams.get("access_token");
+        const error = req.nextUrl.searchParams.get("error");
+        const errorCode = req.nextUrl.searchParams.get("error_code");
         
-        if (code || token || access_token) {
-          console.log("[Middleware] Root path has auth params, redirecting to callback", { 
+        // If there are auth params or errors, redirect to callback to handle them
+        if (code || token || access_token || error || errorCode) {
+          console.log("[Middleware] Root path has auth params/errors, redirecting to callback", { 
             hasCode: !!code, 
             hasToken: !!token, 
-            hasAccessToken: !!access_token 
+            hasAccessToken: !!access_token,
+            hasError: !!error,
+            errorCode
           });
           const callbackUrl = new URL("/auth/callback", req.url);
           req.nextUrl.searchParams.forEach((value, key) => {
