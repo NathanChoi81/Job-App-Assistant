@@ -2,7 +2,9 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { jobsApi } from "@/lib/api";
+import { supabase } from "@/lib/supabase";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 // Force dynamic rendering (no static generation)
 export const dynamic = 'force-dynamic';
@@ -21,6 +23,19 @@ type Job = {
 
 export default function DashboardPage() {
   console.log("[Dashboard] Dashboard component rendered");
+  const router = useRouter();
+  
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      router.push("/");
+      window.location.reload(); // Force reload to clear session
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Failed to logout. Please try again.");
+    }
+  };
   
   const { data: jobs, isLoading, error } = useQuery<Job[]>({
     queryKey: ["jobs"],
@@ -70,7 +85,15 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen p-8">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <button
+            onClick={handleLogout}
+            className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition-colors"
+          >
+            Log Out
+          </button>
+        </div>
         
         <div className="mb-6">
           <Link

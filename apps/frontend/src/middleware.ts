@@ -71,22 +71,32 @@ export async function middleware(req: NextRequest) {
     console.log("[Middleware] All cookies:", Object.keys(req.cookies.getAll()));
   }
 
-  // Protect dashboard routes
-  if (req.nextUrl.pathname.startsWith("/dashboard") && !session) {
-    console.log("[Middleware] No session, redirecting to login");
-    return NextResponse.redirect(new URL("/login", req.url));
-  }
+      // Allow public access to landing page and login
+      const publicPaths = ["/", "/login"];
+      const isPublicPath = publicPaths.includes(req.nextUrl.pathname);
 
-  // Redirect authenticated users away from login
-  if (req.nextUrl.pathname === "/login" && session) {
-    console.log("[Middleware] Has session, redirecting to dashboard");
-    return NextResponse.redirect(new URL("/dashboard", req.url));
-  }
+      // Protect dashboard routes
+      if (req.nextUrl.pathname.startsWith("/dashboard") && !session) {
+        console.log("[Middleware] No session, redirecting to login");
+        return NextResponse.redirect(new URL("/login", req.url));
+      }
+
+      // Redirect authenticated users away from login to dashboard
+      if (req.nextUrl.pathname === "/login" && session) {
+        console.log("[Middleware] Has session, redirecting to dashboard");
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
+
+      // Redirect authenticated users from landing page to dashboard
+      if (req.nextUrl.pathname === "/" && session) {
+        console.log("[Middleware] Has session, redirecting from landing to dashboard");
+        return NextResponse.redirect(new URL("/dashboard", req.url));
+      }
 
   return res;
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/login", "/"],
 };
 
