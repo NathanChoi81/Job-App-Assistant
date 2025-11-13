@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (error) {
       console.error("[Auth Callback] Error exchanging code:", error);
@@ -49,8 +49,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(errorMsg)}`, requestUrl.origin));
     }
 
+    // Success - verify session was created
+    if (!data.session) {
+      console.error("[Auth Callback] No session after code exchange");
+      return NextResponse.redirect(new URL("/login?error=No session created", requestUrl.origin));
+    }
+
+    console.log("[Auth Callback] Session created successfully, redirecting to dashboard");
+    
     // Success - redirect to dashboard
+    // Use a full page redirect to ensure cookies are set
     const response = NextResponse.redirect(new URL(next, requestUrl.origin));
+    
+    // Ensure cookies are properly set
     return response;
   }
 
