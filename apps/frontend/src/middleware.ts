@@ -71,10 +71,6 @@ export async function middleware(req: NextRequest) {
     console.log("[Middleware] All cookies:", Object.keys(req.cookies.getAll()));
   }
 
-      // Allow public access to landing page and login
-      const publicPaths = ["/", "/login"];
-      const isPublicPath = publicPaths.includes(req.nextUrl.pathname);
-
       // Protect dashboard routes
       if (req.nextUrl.pathname.startsWith("/dashboard") && !session) {
         console.log("[Middleware] No session, redirecting to login");
